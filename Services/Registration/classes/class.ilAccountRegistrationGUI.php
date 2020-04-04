@@ -237,7 +237,6 @@ class ilAccountRegistrationGUI
         $this->__initForm();
         $form_valid = $this->form->checkInput();
         
-        
         // custom validation
         $valid_code = $valid_role = false;
                 
@@ -347,24 +346,21 @@ class ilAccountRegistrationGUI
         // validate username
         $login_obj = $this->form->getItemByPostVar('username');
         $login = $this->form->getInput("username");
+        $captcha = $this->form->getItemByPostVar("captcha_code");
         if (!ilUtil::isLogin($login)) {
             $login_obj->setAlert($this->lng->txt("login_invalid"));
             $form_valid = false;
-        } elseif (ilObjUser::_loginExists($login) && !empty($this->form->getInput("captcha_code"))) {
-            $login_obj->setAlert($this->lng->txt("login_exists"));
-            $form_valid = false;
-        } elseif(ilObjUser::_loginExists($login) && empty($this->form->getInput("captcha_code"))) {
+        } elseif (ilObjUser::_loginExists($login)) {
+            if(!empty($captcha) && empty($captcha->getAlert()) || empty($captcha)) {
+                $login_obj->setAlert($this->lng->txt("login_exists"));
+            }
             $form_valid = false;
         } elseif ((int) $ilSetting->get('allow_change_loginname') &&
             (int) $ilSetting->get('reuse_of_loginnames') == 0 &&
-            ilObjUser::_doesLoginnameExistInHistory($login) &&
-            !empty($this->form->getInput("captcha_code"))) {
-            $login_obj->setAlert($this->lng->txt('login_exists'));
-            $form_valid = false;
-        } elseif((int) $ilSetting->get('allow_change_loginname') &&
-            (int) $ilSetting->get('reuse_of_loginnames') == 0 &&
-            ilObjUser::_doesLoginnameExistInHistory($login) &&
-            empty($this->form->getInput("captcha_code"))) {
+            ilObjUser::_doesLoginnameExistInHistory($login)) {
+            if(!empty($captcha) && empty($captcha->getAlert()) || empty($captcha)) {
+                $login_obj->setAlert($this->lng->txt("login_exists"));
+            }
             $form_valid = false;
         }
 
@@ -671,7 +667,7 @@ class ilAccountRegistrationGUI
         ilStartUpGUI::initStartUpTemplate(array('tpl.usr_registered.html', 'Services/Registration'), false);
         $this->tpl->setVariable('TXT_PAGEHEADLINE', $this->lng->txt('registration'));
 
-        $this->tpl->setVariable("TXT_WELCOME", $lng->txt("welcome") . ", " . $this->userObj->getTitle() . "!");
+        $this->tpl->setVariable("TXT_WELCOME", $this->lng->txt("welcome") . ", " . $this->userObj->getTitle() . "!");
         if (
             (
                 $this->registration_settings->getRegistrationType() == IL_REG_DIRECT ||
@@ -684,21 +680,21 @@ class ilAccountRegistrationGUI
             ilSession::set('registered_user', $this->userObj->getId());
             
             $this->tpl->setCurrentBlock('activation');
-            $this->tpl->setVariable('TXT_REGISTERED', $lng->txt('txt_registered'));
+            $this->tpl->setVariable('TXT_REGISTERED', $this->lng->txt('txt_registered'));
             
             $action = $GLOBALS['DIC']->ctrl()->getFormAction($this, 'login') . '&target=' . ilUtil::stripSlashes($_GET['target']);
             $this->tpl->setVariable('FORMACTION', $action);
             
-            $this->tpl->setVariable('TXT_LOGIN', $lng->txt('login_to_ilias'));
+            $this->tpl->setVariable('TXT_LOGIN', $this->lng->txt('login_to_ilias'));
             $this->tpl->parseCurrentBlock();
         } elseif ($this->registration_settings->getRegistrationType() == IL_REG_APPROVE) {
-            $this->tpl->setVariable('TXT_REGISTERED', $lng->txt('txt_submitted'));
+            $this->tpl->setVariable('TXT_REGISTERED', $this->lng->txt('txt_submitted'));
         } elseif ($this->registration_settings->getRegistrationType() == IL_REG_ACTIVATION) {
             $login_url = './login.php?cmd=force_login&lang=' . $this->userObj->getLanguage();
-            $this->tpl->setVariable('TXT_REGISTERED', sprintf($lng->txt('reg_confirmation_link_successful'), $login_url));
+            $this->tpl->setVariable('TXT_REGISTERED', sprintf($this->lng->txt('reg_confirmation_link_successful'), $login_url));
             $this->tpl->setVariable('REDIRECT_URL', $login_url);
         } else {
-            $this->tpl->setVariable('TXT_REGISTERED', $lng->txt('txt_registered_passw_gen'));
+            $this->tpl->setVariable('TXT_REGISTERED', $this->lng->txt('txt_registered_passw_gen'));
         }
     }
     
